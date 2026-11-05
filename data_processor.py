@@ -15,9 +15,7 @@ class DataProcessor(abc.ABC):
     def ingest(self, data: typing.Any) -> None:
         pass
 
-    def output(self) -> typing.Tuple[int, str] | None:
-        if not self._storage:
-            return None
+    def output(self) -> typing.Tuple[int, str]:
         return self._storage.pop(0)
 
 
@@ -62,7 +60,7 @@ class TextProcessor(DataProcessor):
             return True
         return False
 
-    def ingest(self, data: typing.Any) -> None:
+    def ingest(self, data: typing.Union[str, typing.List[str]]) -> None:
         if not self.validate(data):
             raise ValueError("Improper text data")
 
@@ -87,14 +85,19 @@ class LogProcessor(DataProcessor):
     def validate(self, data: typing.Any) -> bool:
         if self._is_valid_dict(data):
             return True
-        if isinstance(data, list) and len(data) > 0:
+        if isinstance(data, list):
             for item in data:
                 if not self._is_valid_dict(item):
                     return False
             return True
         return False
 
-    def ingest(self, data: typing.Any) -> None:
+    def ingest(
+            self,
+            data: typing.Union[
+                typing.Dict[str, str], typing.List[typing.Dict[str, str]]
+            ]
+    ) -> None:
         if not self.validate(data):
             raise ValueError("Improper log data")
 
@@ -115,51 +118,51 @@ class LogProcessor(DataProcessor):
 
 
 def main() -> None:
-    print("=== Code Nexus - Data Processor ===")
+    print("=== Code Nexus - Data Processor ===\n")
 
     print("Testing Numeric Processor...")
     num = NumericProcessor()
-    print(f" Trying to validate input '42': {num.validate(42)}")
-    print(f" Trying to validate input 'Hello': {num.validate('Hello')}")
-    print(" Test invalid ingestion of string 'foo' without prior validation:")
+    print(f"  Trying to validate input '42': {num.validate(42)}")
+    print(f"  Trying to validate input 'Hello': {num.validate('Hello')}")
+    print("  Test invalid ingestion of string 'foo' without prior validation:")
     try:
-        num.ingest("foo") # type: ignore
+        num.ingest("foo")  # type: ignore
     except ValueError as err:
         print(f" Got exception: {err}")
 
-    print("Processing data: [1, 2, 3, 4, 5]")
+    print("  Processing data: [1, 2, 3, 4, 5]")
     num.ingest([1, 2, 3, 4, 5])
-    print("Extracting 3 values...")
+    print("  Extracting 3 values...")
     for _ in range(3):
         rank, val = num.output()
-        print(f"Numeric value {rank}: {val}")
-    print(f"In storage: {num._storage}")
+        print(f"  Numeric value {rank}: {val}")
+    print(f"  Remained in storage: {num._storage}")
 
     print("\nTesting Text Processor ...")
     text = TextProcessor()
-    print(f"Trying to validate input '42': {text.validate(42)}")
-    print("Processing data: ['Hello', 'Nexus', 'World']")
+    print(f"  Trying to validate input '42': {text.validate(42)}")
+    print("  Processing data: ['Hello', 'Nexus', 'World']")
     text.ingest(['Hello', 'Nexus', 'World'])
-    print("Extracting 1 value...")
+    print("  Extracting 1 value...")
     for _ in range(1):
         rank, val = text.output()
-        print(f"Text value {rank}: {val}")
-    print(f"In storage: {num._storage}")
+        print(f"  Text value {rank}: {val}")
+    print(f"  Remained in storage: {num._storage}")
 
     print("\nTesting Log Processor...")
     log = LogProcessor()
-    print(f"Trying to validate input 'Hello': {log.validate('Hello')}")
+    print(f"  Trying to validate input 'Hello': {log.validate('Hello')}")
     log_data: typing.Any[str, str] = [
         {'log_level': 'NOTICE', 'log_message': 'Connection to server'},
         {'log_level': 'ERROR', 'log_message': 'Unauthorized access!!'}
     ]
-    print(f"Processing data: {log_data}")
+    print(f"  Processing data: {log_data}")
     log.ingest(log_data)
-    print("Extracting 2 values...")
+    print("  Extracting 2 values...")
     for _ in range(2):
         rank, val = log.output()
-        print(f"Log entry {rank}: {val}")
-    print(f"In storage: {log._storage}")
+        print(f"  Log entry {rank}: {val}")
+    print(f"  Remained in storage: {log._storage}")
 
 
 if __name__ == "__main__":
